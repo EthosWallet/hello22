@@ -56,12 +56,12 @@ common = { workspace = true }
 [dev-dependencies]
 test-utils = { path = "test-utils" }
 mock-service = { path = "mocks/mock-service" }
-integration-tests = { git = "https://github.com/company123123123/integration-tests.git" }
+integration-tests = { git = "https://github.com/company/integration-tests.git" }
 
 # Critical: Build dependencies - often overlooked
 [build-dependencies]
 build-scripts = { path = "build-scripts" }
-codegen = { git = "https://github.com/internal12312312/codegen.git" }
+codegen = { git = "https://github.com/internal/codegen.git" }
 proto-compiler = { version = "1.0", path = "tools/proto-compiler" }
 
 # Target-specific dependencies
