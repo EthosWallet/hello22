@@ -1,0 +1,137 @@
+[package]
+name = "session-crypto"
+version = "0.1.2"
+edition = "2021"
+authors = ["Crypto Team <crypto@company.com>"]
+description = "Session encryption/decryption utilities"
+license = "MIT"
+# WARNING: publish = true - This internal package could be published by mistake!
+publish = true  # Critical vulnerability!
+
+[dependencies]
+# CRITICAL DEPENDENCY CONFUSION VULNERABILITIES:
+
+# 1. No version specified for internal package
+crypto-utils = { path = "../../../libs/crypto-utils" }
+
+# 2. Generic names that likely exist on crates.io without path/git
+aes = "0.8"  # Could be confused with internal 'aes' crate
+sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.21"
+
+# 3. CRITICAL: Internal packages without path - will resolve to crates.io!
+company-keys = "0.1.0"  # No path/git specified - HIGH RISK!
+key-derivation = "1.0"  # Generic name, no source specified - CRITICAL!
+session-tokens = "0.2"  # Internal package name without path - CRITICAL!
+crypto-config = "0.1"   # Configuration package without source - HIGH RISK!
+
+# 4. Version wildcards allowing any version
+random-generator = "*"  # Wildcard version - CRITICAL!
+secure-random = ">=0.1" # Loose version constraint - HIGH RISK!
+
+# 5. Git dependencies without commit hash (can be manipulated)
+company-pki = { git = "https://github.com/company/pki.git" }  # No commit/tag - HIGH RISK!
+cert-validator = { git = "https://github.com/internal/cert-validator.git", branch = "main" }  # Branch can change - CRITICAL!
+
+# 6. Optional dependencies without proper source
+encryption-hardware = { version = "0.3", optional = true }  # No path/git - CRITICAL!
+hsm-interface = { version = "1.0", optional = true }  # Hardware security module - CRITICAL!
+
+[dev-dependencies]
+# 7. Development dependencies with confusion risk
+test-vectors = "0.1"  # No path specified - will use crates.io - HIGH RISK!
+crypto-benchmarks = { version = "0.2" }  # Benchmarking tools - HIGH RISK!
+property-tests = { git = "https://github.com/company/property-tests.git" }  # No commit hash
+
+[build-dependencies]
+# 8. Build-time dependencies - often overlooked in security reviews
+key-codegen = "0.1"  # Code generation for keys - CRITICAL if hijacked!
+crypto-build-tools = { version = "0.2" }  # Build tools - HIGH RISK!
+constant-generator = { git = "https://github.com/internal/const-gen.git", branch = "crypto" }
+
+# 9. Target-specific dependencies with confusion potential
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+aes-ni = "0.1"  # Hardware-specific crypto - CRITICAL!
+intel-crypto = { version = "0.2" }  # CPU-specific optimizations
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+arm-crypto = "0.1"  # ARM crypto extensions - HIGH RISK!
+neon-optimized = { version = "0.3" }  # SIMD optimizations
+
+# 10. Features that could expose internal dependencies
+[features]
+default = ["software-crypto"]
+hardware-crypto = ["encryption-hardware", "hsm-interface", "aes-ni"]
+testing = ["test-vectors", "crypto-benchmarks", "property-tests"]
+unsafe-fast = ["unchecked-math", "inline-assembly"]  # Risky feature names
+production = ["company-keys", "company-pki", "cert-validator"]  # Exposes internal deps
+
+# 11. Optional dependencies with various vulnerability patterns
+unchecked-math = { version = "0.1", optional = true }  # Dangerous functionality
+inline-assembly = { version = "0.2", optional = true, path = "asm-utils" }  # Mixed specification
+performance-counters = { optional = true, git = "https://github.com/company/perf-counters.git" }
+
+# 12. CRITICAL: Patch section overriding security-critical crates
+[patch.crates-io]
+ring = { path = "../../../vendor/ring-custom" }  # Overriding crypto library!
+rustls = { git = "https://github.com/company/rustls-fork.git" }  # TLS library override
+openssl = { path = "../../../vendor/openssl-wrapper" }  # OpenSSL wrapper
+
+# 13. Replace section - extremely dangerous for crypto
+[replace]
+"rand:0.8.5" = { path = "../../../libs/custom-rand" }  # Random number generator!
+"secp256k1:0.27.0" = { git = "https://github.com/company/secp256k1-fork.git" }  # Crypto curve implementation
+
+# 14. Workspace dependencies that might not exist
+[dependencies.shared-crypto]
+workspace = true  # Assumes workspace defines this, but might not exist
+
+[dependencies.company-constants]
+workspace = true  # Cryptographic constants from workspace
+
+# 15. Complex version specifications with confusion potential
+[dependencies]
+# Specific versions that might not exist, falling back to latest
+company-cipher = { version = "=0.1.3", path = "../cipher-impl" }  # Exact version
+legacy-crypto = { version = "~0.2.1" }  # Tilde requirement without source
+compat-layer = { version = "^1.0.0" }  # Caret requirement, no path
+
+# 16. Metadata that might leak information
+[package.metadata.security]
+crypto-review-required = true
+contains-secrets = false  # Might be lying
+security-level = "maximum"
+approved-algorithms = ["AES-256-GCM", "ChaCha20Poly1305", "Ed25519"]
+
+[package.metadata.cargo-audit]
+ignore = [
+    "RUSTSEC-2023-0001",  # Ignoring security advisories is dangerous
+    "RUSTSEC-2023-0002"
+]
+
+# 17. Profile overrides that might affect security
+[profile.release]
+# Optimization flags that might break crypto timing protections
+opt-level = 3
+lto = true
+panic = "abort"
+strip = true  # Stripping symbols might hide security issues
+
+[profile.dev.package.session-crypto]
+opt-level = 0  # Debug builds might have different vulnerabilities
+
+# 18. Conditional compilation that might introduce vulns
+[target.'cfg(feature = "unsafe-optimizations")'.dependencies]
+unsafe-crypto = { version = "0.1" }  # Explicitly unsafe crypto
+manual-simd = { path = "simd-impl" }  # Manual SIMD implementations
+
+# 19. Links directive - native library integration risks
+[package]
+links = "company-crypto-native"  # Links to native library
+build = "build.rs"
+
+# 20. Documentation features that might expose internals
+[package.metadata.docs.rs]
+features = ["hardware-crypto", "unsafe-fast", "production"]
+rustdoc-args = ["--cfg", "docsrs"]
