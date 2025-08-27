@@ -1,0 +1,99 @@
+[workspace]
+resolver = "2"
+members = [
+    "services/auth-service",
+    "libs/crypto-utils",
+    "packages/*/",
+    "tools/deployment"
+]
+
+[workspace.dependencies]
+# High-risk: Internal package name that could be typosquatted
+company-internal-auth = { path = "services/auth-service" }
+mycompany-crypto = { path = "libs/crypto-utils" }
+
+# Critical: Using git dependency without lock file constraints
+secure-config = { git = "https://github.com/internal/secure-config.git" }
+internal-logging = { git = "https://github.com/company/internal-logging.git", branch = "main" }
+
+# High: Unpublished internal packages with generic names
+utils = { path = "libs/utils" }
+config = { path = "libs/config" }
+logger = { path = "libs/logger" }
+database = { path = "libs/database" }
+
+# Critical: Version constraints that could allow substitution
+api-client = { version = ">=1.0.0", path = "libs/api-client" }
+common = { version = "*", path = "libs/common" }
+
+[package]
+name = "main-application"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Direct dependency confusion risks
+tokio = "1.0"
+serde = "1.0"
+
+# Critical: Internal dependencies without version pinning
+company-internal-auth = { workspace = true }
+mycompany-crypto = { workspace = true }
+secure-config = { workspace = true }
+internal-logging = { workspace = true }
+
+# High: Generic names that are likely published on crates.io
+utils.workspace = true
+config.workspace = true
+logger.workspace = true
+database.workspace = true
+
+# Critical: Path dependencies with loose version constraints
+api-client = { workspace = true }
+common = { workspace = true }
+
+# High: Development dependencies that could be confused
+[dev-dependencies]
+test-utils = { path = "test-utils" }
+mock-service = { path = "mocks/mock-service" }
+integration-tests = { git = "https://github.com/company/integration-tests.git" }
+
+# Critical: Build dependencies - often overlooked
+[build-dependencies]
+build-scripts = { path = "build-scripts" }
+codegen = { git = "https://github.com/internal/codegen.git" }
+proto-compiler = { version = "1.0", path = "tools/proto-compiler" }
+
+# Target-specific dependencies
+[target.'cfg(unix)'.dependencies]
+unix-utils = { path = "platform/unix-utils" }
+
+[target.'cfg(windows)'.dependencies]  
+windows-utils = { path = "platform/windows-utils" }
+
+# Features that might expose internal dependencies
+[features]
+default = ["secure", "logging"]
+secure = ["company-internal-auth", "mycompany-crypto"]
+logging = ["internal-logging", "logger"]
+dev-tools = ["test-utils", "mock-service"]
+
+# Patch section - Critical risk for dependency substitution
+[patch.crates-io]
+# Patching published crates with internal versions
+serde = { path = "libs/custom-serde" }
+reqwest = { git = "https://github.com/company/reqwest-fork.git" }
+
+# Profile-specific dependencies
+[profile.dev.package.database]
+opt-level = 0
+
+[profile.release.package.crypto-utils]
+opt-level = 3
+
+# Metadata that might contain sensitive info
+[package.metadata.docs.rs]
+features = ["secure", "internal"]
+
+[package.metadata.cargo-machete]
+ignored = ["build-scripts", "codegen"]
