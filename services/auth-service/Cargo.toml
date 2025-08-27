@@ -1,0 +1,84 @@
+[package]
+name = "company-internal-auth"
+version = "0.2.1"
+edition = "2021"
+authors = ["Internal Team <team@company.com>"]
+description = "Internal authentication service - DO NOT PUBLISH"
+license-file = "../../LICENSE"
+repository = "https://github.com/company/monorepo"
+publish = false  # Critical: This should prevent publishing but might be ignored
+
+[dependencies]
+# Critical: Nested workspace dependencies
+crypto-helpers = { path = "../crypto-helpers" }
+session-manager = { path = "../../libs/sessions" }
+
+# High: Generic package names likely to exist on crates.io
+jwt = "0.16"
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Critical: Internal dependencies without explicit path/git
+company-db = "0.1.0"  # Assumes internal registry but could resolve to crates.io
+internal-models = { version = "0.2" }  # Same risk
+user-service-client = "1.0"  # Generic name, high confusion risk
+
+# High: Development-specific internal packages
+[dev-dependencies]
+auth-test-fixtures = { path = "test-fixtures" }
+mock-database = { version = "0.1", path = "../../test-utils/mock-database" }
+integration-test-utils = { git = "https://github.com/company/test-utils.git", branch = "auth-service" }
+
+# Critical: Build dependencies with confusion potential
+[build-dependencies]
+proto-gen = { path = "build-tools/proto-gen" }
+schema-validator = "0.3"  # Could exist on crates.io
+internal-build-utils = { version = "0.1" }  # Risky generic name
+
+# Features exposing more internal dependencies
+[features]
+default = ["postgres", "redis-session"]
+postgres = ["company-db/postgres", "migration-tools"]
+redis-session = ["redis-client", "session-crypto"]
+testing = ["auth-test-fixtures", "mock-database"]
+development = ["dev-logger", "debug-utils"]
+
+# Target-specific internal dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+system-auth = { path = "platform/linux-auth" }
+pam-integration = "0.1"  # Could be confused with public crates
+
+[target.'cfg(target_os = "windows")'.dependencies]
+win-auth = { path = "platform/windows-auth" }
+ntlm-client = { version = "0.2" }  # Generic name risk
+
+# Critical: Optional dependencies that might not be checked properly
+redis-client = { version = "0.23", optional = true, path = "../../libs/redis-wrapper" }
+migration-tools = { version = "0.1", optional = true }  # No path specified
+dev-logger = { version = "0.1", optional = true, git = "https://github.com/company/dev-logger.git" }
+debug-utils = { optional = true, path = "debug-utils" }
+session-crypto = { version = "0.1", optional = true, path = "../crypto-service" }
+
+# Patch dependencies - High risk for substitution
+[patch.crates-io]
+jsonwebtoken = { path = "../../libs/custom-jwt" }
+argon2 = { git = "https://github.com/company/argon2-fork.git" }
+
+# Replacements - Critical vulnerability vector  
+[replace]
+"company-models:0.1.0" = { path = "../../models" }
+"auth-types:0.2.0" = { git = "https://github.com/company/auth-types.git" }
+
+# Workspace inheritance with overrides
+[dependencies.workspace-config]
+workspace = true
+features = ["auth-service"]
+
+# Package metadata with sensitive info
+[package.metadata.cargo-audit]
+ignore = ["RUSTSEC-2023-0001"]  # Might ignore real vulnerabilities
+
+[package.metadata.internal]
+service-type = "authentication"
+security-level = "critical"
+deploy-target = "production"
